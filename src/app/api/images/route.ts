@@ -8,7 +8,6 @@ export async function GET(request: Request) {
   const gallery = searchParams.get('gallery') || 'outfit1';
   
   const imagesDirectory = path.join(process.cwd(), 'public/gallery-images', gallery);
-  const ROW_WIDTH = 2000;
   
   try {
     if (!fs.existsSync(imagesDirectory)) {
@@ -22,7 +21,6 @@ export async function GET(request: Request) {
       .filter(file => /\.(jpg|jpeg|png|gif|mp4|webm|mov)$/i.test(file))
       .map((file, index) => {
         const filePath = path.join(imagesDirectory, file);
-        const fileExt = path.extname(file).toLowerCase();
         const isVideo = /\.(mp4|webm|mov)$/i.test(file);
         
         let dimensions = { width: 1920, height: 1080 };

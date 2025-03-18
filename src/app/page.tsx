@@ -32,8 +32,7 @@ function shuffleArray<T>(array: T[]): T[] {
 function findBestFit(
   remainingWidth: number,
   availableImages: MediaType[],
-  minWidth: number,
-  maxWidth: number
+  minWidth: number
 ) {
   // First, look for images that fill 90% or more of the space
   const perfectFits = availableImages.filter(img => 
@@ -63,13 +62,12 @@ function findBestFit(
 function organizeImages(images: MediaType[]): MediaType[] {
   const ROW_WIDTH = 2000;
   const minWidth = Math.min(...images.map(img => img.scaledWidth));
-  const maxWidth = Math.max(...images.map(img => img.scaledWidth));
 
   let availableImages = [...images];
   const finalOrder = [];
 
   while (availableImages.length > 0) {
-    let currentRow = [];
+    const currentRow = [];
     let rowWidth = 0;
     let rowComplete = false;
 
@@ -81,7 +79,7 @@ function organizeImages(images: MediaType[]): MediaType[] {
 
     while (!rowComplete && availableImages.length > 0) {
       const remainingWidth = ROW_WIDTH - rowWidth - (currentRow.length * 32);
-      const bestFit = findBestFit(remainingWidth, availableImages, minWidth, maxWidth);
+      const bestFit = findBestFit(remainingWidth, availableImages, minWidth);
 
       if (bestFit) {
         currentRow.push(bestFit);
