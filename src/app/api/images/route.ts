@@ -1,7 +1,20 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
 import path from 'path';
+import fs from 'fs';
 import sizeOf from 'image-size';
+
+interface ImageData {
+  id: number;
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+  scaledWidth: number;
+  isVideo: boolean;
+}
+
+// Cache for home image
+let homeImageCache: ImageData | null = null;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -14,6 +27,11 @@ export async function GET(request: Request) {
       fs.mkdirSync(imagesDirectory, { recursive: true });
       return NextResponse.json([]); 
     }
+
+    // Return cached home image if available
+    if (gallery === 'home' && homeImageCache) {
+      return NextResponse.json([homeImageCache]);
+    }
     
     const imageFiles = fs.readdirSync(imagesDirectory);
     
@@ -24,31 +42,42 @@ export async function GET(request: Request) {
         const isVideo = /\.(mp4|webm|mov)$/i.test(file);
         
         let dimensions = { width: 1920, height: 1080 };
-        if (!isVideo) {
-          const fileBuffer = fs.readFileSync(filePath);
-          dimensions = sizeOf(fileBuffer) || dimensions;
+        try {
+          if (!isVideo) {
+            const fileBuffer = fs.readFileSync(filePath);
+            dimensions = sizeOf(fileBuffer);
+          }
+        } catch (error) {
+          console.error(`Error getting dimensions for ${file}:`, error);
         }
-        
+
+        const aspectRatio = dimensions.width / dimensions.height;
         const targetHeight = 400;
-        const scaledWidth = Math.round((targetHeight / (dimensions.height || 1080)) * (dimensions.width || 1920));
-        
-        return {
-          id: index + 1,
+        const scaledWidth = Math.round(targetHeight * aspectRatio);
+
+        const imageData = {
+          id: index,
           src: `/gallery-images/${gallery}/${file}`,
           alt: file.split('.')[0].replace(/-/g, ' '),
-          width: dimensions.width || 1920,
-          height: dimensions.height || 1080,
-          scaledWidth: scaledWidth,
-          type: isVideo ? 'video' : 'image'
+          width: dimensions.width,
+          height: dimensions.height,
+          scaledWidth,
+          isVideo
         };
+
+        // Cache home image
+        if (gallery === 'home' && index === 0) {
+          homeImageCache = imageData;
+        }
+
+        return imageData;
       });
 
     // Sort by width but don't randomize
     const sortedByWidth = [...images].sort((a, b) => b.scaledWidth - a.scaledWidth);
     return NextResponse.json(sortedByWidth);
-    
   } catch (error) {
-    console.error('Error reading gallery images:', error);
-    return NextResponse.json({ error: 'Failed to load images' }, { status: 500 });
+    console.error('Error processing images:', error);
+    return NextResponse.json({ error: 'Error processing images' }, { status: 500 });
   }
 } 

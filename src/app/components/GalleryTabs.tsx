@@ -1,7 +1,7 @@
 import styles from '../page.module.css';
 
 type TabProps = {
-  currentTab: string;
+  selectedTab: string;
   onTabChange: (tab: string) => void;
   onHomeClick: () => void;
 };
@@ -13,7 +13,7 @@ const tabs = [
   { id: 'other', label: 'OTHER STYLES' },
 ];
 
-export default function GalleryTabs({ currentTab, onTabChange, onHomeClick }: TabProps) {
+export default function GalleryTabs({ selectedTab, onTabChange, onHomeClick }: TabProps) {
   return (
     <div className={styles.tabContainer}>
       <button
@@ -25,7 +25,7 @@ export default function GalleryTabs({ currentTab, onTabChange, onHomeClick }: Ta
       {tabs.map((tab) => (
         <button
           key={tab.id}
-          className={`${styles.tab} ${currentTab === tab.id ? styles.activeTab : ''}`}
+          className={`${styles.tab} ${selectedTab === tab.id ? styles.activeTab : ''}`}
           onClick={() => onTabChange(tab.id)}
         >
           {tab.label}

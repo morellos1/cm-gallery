@@ -38,3 +38,28 @@ body {
 .image-loaded {
   opacity: 1;
 }
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  background: rgb(10, 10, 10);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+::-webkit-scrollbar-track {
+  background: rgb(10, 10, 10);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgb(10, 10, 10);
+}

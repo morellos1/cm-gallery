@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 
 type HomePageProps = {
-  onReferencesClick: () => void;
+  onEnterGallery: () => void;
 };
 
 type HomeImage = {
@@ -13,14 +13,14 @@ type HomeImage = {
   height: number;
 };
 
-export default function HomePage({ onReferencesClick }: HomePageProps) {
+export default function HomePage({ onEnterGallery }: HomePageProps) {
   const [homeImage, setHomeImage] = useState<HomeImage | null>(null);
 
   useEffect(() => {
     fetch('/api/images?gallery=home')
       .then(res => res.json())
       .then(data => {
-        if (data && data.length > 0) {
+        if (data.length > 0) {
           setHomeImage(data[0]);
         }
       })
@@ -33,17 +33,19 @@ export default function HomePage({ onReferencesClick }: HomePageProps) {
         <div className={styles.homeImageContainer}>
           <Image
             src={homeImage.src}
-            alt="Home"
+            alt=""
             width={homeImage.width}
             height={homeImage.height}
             className={styles.homeImage}
             priority
+            quality={90}
+            placeholder="blur"
+            blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkMjU1LS0yMi4qLjgyPjA+OjU1RUVHSkdKTUtLR0pHRkpLRktLR0r/2wBDAR"
           />
         </div>
       )}
-      
       <div className={styles.socialIcons}>
-        <a href="https://x.com/morellostorment" target="_blank" rel="noopener noreferrer" className={styles.iconLink}>
+        <a href="https://twitter.com/morellostorment" target="_blank" rel="noopener noreferrer" className={styles.iconLink}>
           <FaTwitter size={24} />
         </a>
         <a href="https://drive.google.com/drive/u/2/folders/1F6mtB-3vQf4QDydUK13sItKcB4Dzu5dd" target="_blank" rel="noopener noreferrer" className={styles.iconLink}>
@@ -56,8 +58,7 @@ export default function HomePage({ onReferencesClick }: HomePageProps) {
           <FaEnvelope size={24} />
         </a>
       </div>
-
-      <button onClick={onReferencesClick} className={styles.referencesButton}>
+      <button className={styles.referencesButton} onClick={onEnterGallery}>
         REFERENCES
       </button>
     </div>

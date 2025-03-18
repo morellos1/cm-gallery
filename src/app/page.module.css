@@ -1,7 +1,9 @@
+/* Container styles */
 .container {
   width: min(2000px, calc(100vw - 10rem));
-  margin: 50px auto 200px;
+  margin: 0 auto 200px;
   padding: 0 5rem;
+  position: relative;
 }
 
 .grid {
@@ -10,7 +12,50 @@
   gap: 3rem;
   width: 100%;
   justify-content: center;
-  padding-top: 40px;
+  padding-top: 1rem;
+}
+
+.mediaWrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: rgb(10, 10, 10);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.placeholder {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.media {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  border-radius: 8px;
+  object-fit: cover;
+  background: rgb(10, 10, 10);
+}
+
+.media.loaded {
+  opacity: 1;
 }
 
 .imageContainer {
@@ -19,6 +64,8 @@
   width: fit-content;
   flex-shrink: 0;
   cursor: pointer;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .image {
@@ -33,10 +80,7 @@
   inset: 0;
   background-color: rgba(0, 0, 0, 0);
   transition: background-color 0.3s;
-  border-radius: 8px;
-  display: block;
-  height: 100%;
-  width: 100%;
+  z-index: 2;
 }
 
 .imageContainer:hover .overlay {
@@ -62,6 +106,10 @@
   max-height: 90vh;
   max-width: 90vw;
   cursor: default;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgb(10, 10, 10);
 }
 
 .modalImage {
@@ -71,6 +119,7 @@
   height: auto;
   object-fit: contain;
   border-radius: 8px;
+  background: rgb(10, 10, 10);
 }
 
 .modalFileName {
@@ -79,35 +128,46 @@
   color: white;
   font-size: 1.1rem;
   font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.modalFileName:hover {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .tabContainer {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 2rem;
   width: 100%;
   justify-content: center;
+  padding: 1.5rem 0;
+  position: sticky;
+  top: 0;
+  background: rgba(10, 10, 10, 0.8);
+  backdrop-filter: blur(8px);
+  z-index: 10;
 }
 
 .tab {
-  padding: 0.75rem 1.5rem;
-  background: rgba(255, 255, 255, 0.1);
+  padding: 0.75rem 0;
+  background: none;
   border: none;
-  border-radius: 0.5rem;
-  color: white;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 140px;
+  min-width: 100px;
   text-align: center;
 }
 
 .tab:hover {
-  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .activeTab {
-  background: rgba(255, 255, 255, 0.25);
+  color: white;
   font-weight: 500;
 }
 
@@ -136,7 +196,7 @@
 
 .socialIcons {
   display: flex;
-  gap: 2rem;
+  gap: 3rem;
   margin-bottom: 2rem;
 }
 
@@ -168,11 +228,11 @@
 }
 
 .homeTab {
-  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .homeTab:hover {
-  background: rgba(255, 255, 255, 0.25);
+  color: white;
 }
 
 .homeImageContainer {
@@ -183,7 +243,39 @@
 }
 
 .homeImage {
-  max-width: 75%;
+  max-width: 65%;
   height: auto;
   border-radius: 8px;
+}
+
+.video {
+  cursor: pointer;
+}
+
+.modalVideoContainer {
+  position: relative;
+  max-height: 90vh;
+  max-width: 90vw;
+}
+
+.modalVideo {
+  cursor: pointer;
+  background: rgb(10, 10, 10);
+}
+
+.modalVideoContainer:hover .modalVideo,
+.video:hover {
+  cursor: pointer;
+}
+
+/* Show native controls on hover */
+.modalVideoContainer:hover .modalVideo[controls="false"],
+.imageContainer:hover .video[controls="false"] {
+  controls: visible;
+}
+
+/* Hide native controls by default */
+.video[controls="false"],
+.modalVideo[controls="false"] {
+  controls: none;
 }

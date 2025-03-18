@@ -6,19 +6,14 @@ import { useState, useEffect, useRef } from 'react';
 import GalleryTabs from './components/GalleryTabs';
 import HomePage from './components/HomePage';
 
-type MediaType = {
+interface MediaType {
   id: number;
   src: string;
-  alt: string;
   width: number;
   height: number;
   scaledWidth: number;
-  type: 'image' | 'video';
-};
-
-type GalleryOrders = {
-  [key: string]: MediaType[];
-};
+  isVideo: boolean;
+}
 
 function shuffleArray<T>(array: T[]): T[] {
   const newArray = [...array];
@@ -100,48 +95,148 @@ function organizeImages(images: MediaType[]): MediaType[] {
   return finalOrder;
 }
 
+function MediaItem({ src, width, height, isVideo }: MediaType) {
+  const containerStyle: React.CSSProperties = {
+    position: 'relative',
+    width: '100%',
+    aspectRatio: width / height,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden'
+  };
+
+  const [showControls, setShowControls] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [shouldLoad, setShouldLoad] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShouldLoad(true);
+          observer.disconnect();
+        }
+      },
+      {
+        rootMargin: '100px'
+      }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  if (isVideo) {
+    return (
+      <div 
+        ref={containerRef}
+        style={containerStyle}
+        onMouseEnter={() => setShowControls(true)}
+        onMouseLeave={() => setShowControls(false)}
+        className={`${styles.mediaWrapper} ${!isLoaded ? styles.loading : ''}`}
+      >
+        <video
+          src={shouldLoad ? src : undefined}
+          controls={showControls}
+          loop
+          muted
+          playsInline
+          className={`${styles.media} ${styles.video} ${isLoaded ? styles.loaded : ''}`}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover'
+          }}
+          onLoadedData={() => setIsLoaded(true)}
+        />
+        {!isLoaded && <div className={styles.placeholder} />}
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      ref={containerRef}
+      style={containerStyle}
+      className={`${styles.mediaWrapper} ${!isLoaded ? styles.loading : ''}`}
+    >
+      {shouldLoad && (
+        <Image
+          src={src}
+          alt=""
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          className={`${styles.media} ${isLoaded ? styles.loaded : ''}`}
+          priority={false}
+          loading="lazy"
+          quality={75}
+          onLoad={() => setIsLoaded(true)}
+          placeholder="blur"
+          blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkMjU1LS0yMi4qLjgyPjA+OjU1RUVHSkdKTUtLR0pHRkpLRktLR0r/2wBDAR"
+        />
+      )}
+      {!isLoaded && <div className={styles.placeholder} />}
+    </div>
+  );
+}
+
 export default function Home() {
-  const [media, setMedia] = useState<MediaType[]>([]);
+  const [images, setImages] = useState<MediaType[]>([]);
+  const [selectedTab, setSelectedTab] = useState('outfit1');
+  const [showHome, setShowHome] = useState(true);
   const [selectedMedia, setSelectedMedia] = useState<MediaType | null>(null);
-  const [currentTab, setCurrentTab] = useState('outfit1');
-  const [galleryOrders, setGalleryOrders] = useState<GalleryOrders>({});
-  const [showGallery, setShowGallery] = useState(false);
+  const [showModalControls, setShowModalControls] = useState(false);
+  const [imageCache, setImageCache] = useState<Record<string, MediaType[]>>({});
   const videoRef = useRef<HTMLVideoElement>(null);
   const isFirstLoad = useRef<boolean>(true);
 
   useEffect(() => {
     const loadGallery = async () => {
       try {
-        const res = await fetch(`/api/images?gallery=${currentTab}`);
+        // Check if we have cached images for this tab
+        if (imageCache[selectedTab]) {
+          setImages(imageCache[selectedTab]);
+          return;
+        }
+
+        const res = await fetch(`/api/images?gallery=${selectedTab}`);
         const data = await res.json() as MediaType[];
         
-        if (isFirstLoad.current || !galleryOrders[currentTab]) {
+        let organizedData: MediaType[];
+        if (isFirstLoad.current) {
           const shuffledData = shuffleArray(data);
-          const organizedData = organizeImages(shuffledData);
-          setGalleryOrders(prev => ({
-            ...prev,
-            [currentTab]: organizedData
-          }));
-          setMedia(organizedData);
+          organizedData = organizeImages(shuffledData);
+          isFirstLoad.current = false;
         } else {
-          setMedia(galleryOrders[currentTab]);
+          organizedData = organizeImages(data);
         }
+
+        // Cache the organized images for this tab
+        setImageCache(prev => ({
+          ...prev,
+          [selectedTab]: organizedData
+        }));
+        setImages(organizedData);
       } catch (error) {
         console.error('Error loading media:', error);
       }
     };
 
-    if (showGallery) {
+    if (!showHome) {
       loadGallery();
-      
-      if (isFirstLoad.current) {
-        isFirstLoad.current = false;
-      }
     }
-  }, [currentTab, galleryOrders, showGallery]);
+  }, [selectedTab, showHome, imageCache]);
 
-  const handleMediaClick = (item: MediaType) => {
-    setSelectedMedia(item);
+  // Reset cache when returning to home to ensure fresh content on next visit
+  const handleHomeClick = () => {
+    setShowHome(true);
+    setImageCache({});
+    isFirstLoad.current = true;
   };
 
   const handleCloseModal = () => {
@@ -149,72 +244,34 @@ export default function Home() {
       videoRef.current.pause();
     }
     setSelectedMedia(null);
-  };
-
-  const handleTabChange = (tab: string) => {
-    setCurrentTab(tab);
-  };
-
-  const handleReferencesClick = () => {
-    setShowGallery(true);
-    setCurrentTab('outfit1');
-  };
-
-  const handleHomeClick = () => {
-    setShowGallery(false);
-  };
-
-  if (!showGallery) {
-    return <HomePage onReferencesClick={handleReferencesClick} />;
-  }
-
-  const renderMediaItem = (item: MediaType) => {
-    if (item.type === 'video') {
-      return (
-        <video
-          className={styles.image}
-          style={{ width: 'auto', height: '400px', objectFit: 'contain' }}
-          src={item.src}
-          muted
-          loop
-          autoPlay
-          playsInline
-        />
-      );
-    }
-
-    return (
-      <Image
-        src={item.src}
-        alt={item.alt}
-        height={400}
-        width={item.scaledWidth}
-        className={styles.image}
-        priority={item.id === 1}
-        style={{ width: 'auto' }}
-      />
-    );
+    setShowModalControls(false);
   };
 
   const renderModalContent = (item: MediaType) => {
-    if (item.type === 'video') {
+    if (item.isVideo) {
       return (
-        <video
-          ref={videoRef}
-          className={styles.modalImage}
-          src={item.src}
-          controls
-          autoPlay
-          loop
-          style={{ maxHeight: '90vh', maxWidth: '90vw' }}
-        />
+        <div 
+          className={styles.modalVideoContainer}
+          onMouseEnter={() => setShowModalControls(true)}
+          onMouseLeave={() => setShowModalControls(false)}
+        >
+          <video
+            ref={videoRef}
+            className={`${styles.modalImage} ${styles.modalVideo}`}
+            src={item.src}
+            controls={showModalControls}
+            autoPlay
+            loop
+            style={{ maxHeight: '90vh', maxWidth: '90vw' }}
+          />
+        </div>
       );
     }
 
     return (
       <Image
         src={item.src}
-        alt={item.alt}
+        alt=""
         width={item.width}
         height={item.height}
         className={styles.modalImage}
@@ -223,33 +280,30 @@ export default function Home() {
     );
   };
 
-  return (
-    <div className="min-h-screen bg-black text-white overflow-x-hidden">
-      <div className={styles.container}>
-        <header className="py-4 w-full">
-          <GalleryTabs 
-            currentTab={currentTab} 
-            onTabChange={handleTabChange}
-            onHomeClick={handleHomeClick}
-          />
-        </header>
-        
-        <main className="w-full">
-          <div className={styles.grid}>
-            {media.map((item) => (
-              <div 
-                key={item.id} 
-                className={styles.imageContainer}
-                onClick={() => handleMediaClick(item)}
-              >
-                {renderMediaItem(item)}
-                <div className={styles.overlay} />
-              </div>
-            ))}
-          </div>
-        </main>
-      </div>
+  if (showHome) {
+    return <HomePage onEnterGallery={() => setShowHome(false)} />;
+  }
 
+  return (
+    <main className={styles.container}>
+      <GalleryTabs 
+        selectedTab={selectedTab} 
+        onTabChange={setSelectedTab}
+        onHomeClick={handleHomeClick}
+      />
+      <div className={styles.grid}>
+        {images.map((media) => (
+          <div
+            key={media.id}
+            className={styles.imageContainer}
+            style={{ width: `${media.scaledWidth}px` }}
+            onClick={() => setSelectedMedia(media)}
+          >
+            <MediaItem {...media} />
+            <div className={styles.overlay} />
+          </div>
+        ))}
+      </div>
       {selectedMedia && (
         <div 
           className={styles.modalBackdrop}
@@ -260,12 +314,18 @@ export default function Home() {
             onClick={e => e.stopPropagation()}
           >
             {renderModalContent(selectedMedia)}
-            <div className={styles.modalFileName}>
+            <a 
+              href={`https://x.com/${selectedMedia.src.split('/').pop()?.split('.')[0].replace(/-/g, ' ')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.modalFileName}
+              onClick={e => e.stopPropagation()}
+            >
               {selectedMedia.src.split('/').pop()?.split('.')[0].replace(/-/g, ' ')}
-            </div>
+            </a>
           </div>
         </div>
       )}
-    </div>
+    </main>
   );
 }
