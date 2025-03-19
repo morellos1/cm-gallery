@@ -106,7 +106,6 @@ function MediaItem({ src, width, height, isVideo }: MediaType) {
     overflow: 'hidden'
   };
 
-  const [showControls, setShowControls] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [shouldLoad, setShouldLoad] = useState(false);
@@ -136,13 +135,11 @@ function MediaItem({ src, width, height, isVideo }: MediaType) {
       <div 
         ref={containerRef}
         style={containerStyle}
-        onMouseEnter={() => setShowControls(true)}
-        onMouseLeave={() => setShowControls(false)}
         className={`${styles.mediaWrapper} ${!isLoaded ? styles.loading : ''}`}
       >
         <video
           src={shouldLoad ? src : undefined}
-          controls={showControls}
+          controls={false}
           loop
           muted
           playsInline
@@ -190,8 +187,8 @@ export default function Home() {
   const [selectedTab, setSelectedTab] = useState('outfit1');
   const [showHome, setShowHome] = useState(true);
   const [selectedMedia, setSelectedMedia] = useState<MediaType | null>(null);
-  const [showModalControls, setShowModalControls] = useState(false);
   const [imageCache, setImageCache] = useState<Record<string, MediaType[]>>({});
+  const [isModalLoading, setIsModalLoading] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const isFirstLoad = useRef<boolean>(true);
 
@@ -232,11 +229,17 @@ export default function Home() {
     }
   }, [selectedTab, showHome, imageCache]);
 
+  const handleTabChange = (tab: string) => {
+    setSelectedTab(tab);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
   // Reset cache when returning to home to ensure fresh content on next visit
   const handleHomeClick = () => {
     setShowHome(true);
     setImageCache({});
     isFirstLoad.current = true;
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   const handleCloseModal = () => {
@@ -244,39 +247,74 @@ export default function Home() {
       videoRef.current.pause();
     }
     setSelectedMedia(null);
-    setShowModalControls(false);
+    setIsModalLoading(true); // Reset loading state when closing
+  };
+
+  const handleMediaClick = (item: MediaType) => {
+    setSelectedMedia(item);
+    setIsModalLoading(true); // Set loading state when opening new media
   };
 
   const renderModalContent = (item: MediaType) => {
+    const filename = item.src.split('/').pop()?.split('.')[0].replace(/-/g, ' ');
+
     if (item.isVideo) {
       return (
-        <div 
-          className={styles.modalVideoContainer}
-          onMouseEnter={() => setShowModalControls(true)}
-          onMouseLeave={() => setShowModalControls(false)}
-        >
-          <video
-            ref={videoRef}
-            className={`${styles.modalImage} ${styles.modalVideo}`}
-            src={item.src}
-            controls={showModalControls}
-            autoPlay
-            loop
-            style={{ maxHeight: '90vh', maxWidth: '90vw' }}
-          />
-        </div>
+        <>
+          <div className={styles.modalVideoContainer}>
+            {isModalLoading && <div className={styles.modalSpinner} />}
+            <video
+              ref={videoRef}
+              className={`${styles.modalImage} ${styles.modalVideo}`}
+              src={item.src}
+              controls={false}
+              autoPlay
+              loop
+              muted
+              style={{ maxHeight: '90vh', maxWidth: '90vw', opacity: isModalLoading ? 0 : 1 }}
+              onLoadedData={() => setIsModalLoading(false)}
+            />
+          </div>
+          {!isModalLoading && (
+            <a 
+              href={`https://x.com/${filename}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.modalFileName}
+              onClick={e => e.stopPropagation()}
+            >
+              {filename}
+            </a>
+          )}
+        </>
       );
     }
 
     return (
-      <Image
-        src={item.src}
-        alt=""
-        width={item.width}
-        height={item.height}
-        className={styles.modalImage}
-        priority
-      />
+      <>
+        {isModalLoading && <div className={styles.modalSpinner} />}
+        <Image
+          src={item.src}
+          alt=""
+          width={item.width}
+          height={item.height}
+          className={styles.modalImage}
+          style={{ opacity: isModalLoading ? 0 : 1 }}
+          priority
+          onLoad={() => setIsModalLoading(false)}
+        />
+        {!isModalLoading && (
+          <a 
+            href={`https://x.com/${filename}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.modalFileName}
+            onClick={e => e.stopPropagation()}
+          >
+            {filename}
+          </a>
+        )}
+      </>
     );
   };
 
@@ -285,27 +323,26 @@ export default function Home() {
   }
 
   return (
-    <main className={styles.container}>
-      <GalleryTabs 
-        selectedTab={selectedTab} 
-        onTabChange={setSelectedTab}
+    <div className={styles.container}>
+      <GalleryTabs
+        selectedTab={selectedTab}
+        onTabChange={handleTabChange}
         onHomeClick={handleHomeClick}
       />
       <div className={styles.grid}>
-        {images.map((media) => (
+        {images.map((item) => (
           <div
-            key={media.id}
-            className={styles.imageContainer}
-            style={{ width: `${media.scaledWidth}px` }}
-            onClick={() => setSelectedMedia(media)}
+            key={item.id}
+            className={styles.gridItem}
+            style={{ width: `${item.scaledWidth}px` }}
+            onClick={() => handleMediaClick(item)}
           >
-            <MediaItem {...media} />
-            <div className={styles.overlay} />
+            <MediaItem {...item} />
           </div>
         ))}
       </div>
       {selectedMedia && (
-        <div 
+        <div
           className={styles.modalBackdrop}
           onClick={handleCloseModal}
         >
@@ -314,18 +351,9 @@ export default function Home() {
             onClick={e => e.stopPropagation()}
           >
             {renderModalContent(selectedMedia)}
-            <a 
-              href={`https://x.com/${selectedMedia.src.split('/').pop()?.split('.')[0].replace(/-/g, ' ')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.modalFileName}
-              onClick={e => e.stopPropagation()}
-            >
-              {selectedMedia.src.split('/').pop()?.split('.')[0].replace(/-/g, ' ')}
-            </a>
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

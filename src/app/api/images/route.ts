@@ -3,19 +3,6 @@ import path from 'path';
 import fs from 'fs';
 import sizeOf from 'image-size';
 
-interface ImageData {
-  id: number;
-  src: string;
-  alt: string;
-  width: number;
-  height: number;
-  scaledWidth: number;
-  isVideo: boolean;
-}
-
-// Cache for home image
-let homeImageCache: ImageData | null = null;
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const gallery = searchParams.get('gallery') || 'outfit1';
@@ -26,11 +13,6 @@ export async function GET(request: Request) {
     if (!fs.existsSync(imagesDirectory)) {
       fs.mkdirSync(imagesDirectory, { recursive: true });
       return NextResponse.json([]); 
-    }
-
-    // Return cached home image if available
-    if (gallery === 'home' && homeImageCache) {
-      return NextResponse.json([homeImageCache]);
     }
     
     const imageFiles = fs.readdirSync(imagesDirectory);
@@ -55,7 +37,7 @@ export async function GET(request: Request) {
         const targetHeight = 400;
         const scaledWidth = Math.round(targetHeight * aspectRatio);
 
-        const imageData = {
+        return {
           id: index,
           src: `/gallery-images/${gallery}/${file}`,
           alt: file.split('.')[0].replace(/-/g, ' '),
@@ -64,13 +46,6 @@ export async function GET(request: Request) {
           scaledWidth,
           isVideo
         };
-
-        // Cache home image
-        if (gallery === 'home' && index === 0) {
-          homeImageCache = imageData;
-        }
-
-        return imageData;
       });
 
     // Sort by width but don't randomize
